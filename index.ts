@@ -1,55 +1,83 @@
 import path from "path";
-import fs from "fs"
+import fs from "fs";
 import { chromium } from "playwright";
 
-const UploadVideoTikTok = async()=>{
-   const context = await chromium.launchPersistentContext("./meu-perfil", {
-  headless: false,
-  args: ['--start-maximized', '--disable-blink-features=AutomationControlled'
-     
-  ],
-});
-
-await context.setExtraHTTPHeaders({
-  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
-});
-
-const page = await context.newPage();
-await page.goto("https://www.tiktok.com/tiktokstudio/upload?from=webapp");
-
-
-
-
-await page.click('text=Selecionar vídeo')
-
-  const fileInput = await page.waitForSelector('input[type="file"]',{
-    state : "attached"
+const UploadVideoTikTok = async () => {
+  const context = await chromium.launchPersistentContext("./meu-perfil", {
+    executablePath: "/usr/bin/google-chrome",
+    headless: false,
+    args: [
+      "--lang=pt-BR",
+      "--start-maximized",
+      "--disable-blink-features=AutomationControlled",
+    ],
   });
-  const arquivoVideo = path.resolve("/home/joabyson/Downloads")
-  const filterVideo = fs.readdirSync(arquivoVideo).filter(video => video.endsWith(".mp4"))
 
-  if(filterVideo.length === 0 ){
-    console.log("Nenhum video Mp4 encontrado");
+  await context.setExtraHTTPHeaders({
+    "user-agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+  });
+
+  const page = await context.newPage();
+
+
+  await page.goto("https://www.tiktok.com/upload", {
+
+  });
+
+  // 🧭 Espera o input[type="file"]
+
+  const fileInput = await page.waitForSelector('input[type="file"]', {
+    state: "attached",
+  });
+
+  // 🎞️ Busca vídeo aleatório
     
+  const pastaVideos = path.resolve("/home/joabyson/Downloads");
+  const videos = fs
+    .readdirSync(pastaVideos)
+    .filter((file) => file.endsWith(".mp4"));
+
+  if (videos.length === 0) {
+    console.log("❌ Nenhum vídeo encontrado.");
+    return;
   }
-  const videoEnviarAleatorio =Math.floor(Math.random() * filterVideo.length)
-  const videoSelecionado = filterVideo[videoEnviarAleatorio]
 
-  const videoPath = path.join("/home/joabyson/Downloads", videoSelecionado)
+  const videoAleatorio = videos[Math.floor(Math.random() * videos.length)];
+  const videoPath = path.join(pastaVideos, videoAleatorio);
 
-    await fileInput.setInputFiles(videoPath);
+  // 📤 Envia o vídeo
+    await page.waitForTimeout(30000)
+  await fileInput.setInputFiles(videoPath);
+  console.log(`📤 Enviado: ${videoAleatorio}`);
 
-
-    console.log("✅ Upload finalizado (manual ou automático).");
-
-
-
-
-}
-
-UploadVideoTikTok()
-  
+  // ⏳ Aguarda thumbnail
+    await page.waitForTimeout(30000)
+  console.log("⏳ Aguardando miniatura...");
+  await page.waitForSelector('img', {
+  timeout: 120000,
+});
 
 
+  // 📝 Preenche legenda
+  await page.waitForSelector('[data-e2e="video-caption"]', { timeout: 60000 });
+  await page.fill(
+    '[data-e2e="video-caption"]',
+    "Postagem automática via Playwright 🚀"
+  );
 
- 
+  // 👇 Scroll para garantir que botão apareça
+  await page.evaluate(() => window.scrollBy(0, 300));
+  await page.waitForTimeout(3000);
+
+  // 🚀 Clica em "Postar"
+  const botaoPostar = await page.$('button:has-text("Postar")');
+  if (botaoPostar) {
+    await botaoPostar.click();
+    console.log("🚀 Vídeo postado com sucesso!");
+  } else {
+    console.log("❌ Botão 'Postar' não encontrado.");
+  }
+};
+
+UploadVideoTikTok();
