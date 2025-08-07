@@ -1,1 +1,9 @@
 /node_modules
+
+
+# Ignorar perfil persistente do Playwright
+meu-perfil/
+
+# Ignorar possíveis vídeos locais
+*.mp4
+/home/joabyson/Downloads

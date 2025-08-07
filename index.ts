@@ -20,64 +20,77 @@ const UploadVideoTikTok = async () => {
 
   const page = await context.newPage();
 
-
-  await page.goto("https://www.tiktok.com/upload", {
-
-  });
-
-  // 🧭 Espera o input[type="file"]
+  await page.goto("https://www.tiktok.com/upload", {});
 
   const fileInput = await page.waitForSelector('input[type="file"]', {
     state: "attached",
   });
 
-  // 🎞️ Busca vídeo aleatório
-    
   const pastaVideos = path.resolve("/home/joabyson/Downloads");
   const videos = fs
     .readdirSync(pastaVideos)
     .filter((file) => file.endsWith(".mp4"));
 
   if (videos.length === 0) {
-    console.log("❌ Nenhum vídeo encontrado.");
+    console.log("Nenhum vídeo encontrado.");
     return;
   }
 
   const videoAleatorio = videos[Math.floor(Math.random() * videos.length)];
   const videoPath = path.join(pastaVideos, videoAleatorio);
 
-  // 📤 Envia o vídeo
-    await page.waitForTimeout(30000)
+  await page.click("text=Selecionar vídeo"); // Chamar video
+
+  await page.waitForTimeout(20000);
   await fileInput.setInputFiles(videoPath);
-  console.log(`📤 Enviado: ${videoAleatorio}`);
+  console.log(` Enviado: ${videoAleatorio}`);
 
-  // ⏳ Aguarda thumbnail
-    await page.waitForTimeout(30000)
-  console.log("⏳ Aguardando miniatura...");
-  await page.waitForSelector('img', {
-  timeout: 120000,
-});
+  await page.evaluate(() => window.scrollBy(0, 500));
+  await page.waitForTimeout(2000);
 
-
-  // 📝 Preenche legenda
-  await page.waitForSelector('[data-e2e="video-caption"]', { timeout: 60000 });
-  await page.fill(
-    '[data-e2e="video-caption"]',
-    "Postagem automática via Playwright 🚀"
+  await page.waitForSelector(
+    ".public-DraftStyleDefault-block.public-DraftStyleDefault-ltr",
+    {
+      timeout: 10000,
+    }
   );
 
-  // 👇 Scroll para garantir que botão apareça
+  await page.click(
+    ".public-DraftStyleDefault-block.public-DraftStyleDefault-ltr"
+  );
+  await page.keyboard.type(`
+#AltaPerformance
+
+#FocoENegocio
+
+#MentalidadeDeSucesso
+
+#Produtividade
+
+#CrescimentoPessoal
+
+#Disciplina
+
+#MindsetEmpreendedor`);
+
+  console.log("⏳ Aguardando miniatura...");
+  await page.waitForSelector("img.cover-image", {
+    timeout: 120000,
+  });
+
   await page.evaluate(() => window.scrollBy(0, 300));
   await page.waitForTimeout(3000);
 
   // 🚀 Clica em "Postar"
-  const botaoPostar = await page.$('button:has-text("Postar")');
+  const botaoPostar = await page.$('button:has-text("Publicar")');
   if (botaoPostar) {
     await botaoPostar.click();
-    console.log("🚀 Vídeo postado com sucesso!");
+    console.log("Vídeo postado com sucesso!");
   } else {
-    console.log("❌ Botão 'Postar' não encontrado.");
+    console.log("Botão 'Publicar' não encontrado.");
   }
+
+  await page.close()
 };
 
 UploadVideoTikTok();
