@@ -1,0 +1,91 @@
+# Upload Automático de Vídeo para TikTok com Playwright
+
+Automatize o upload de vídeos no TikTok Studio usando Playwright em Node.js. Este script faz upload de um vídeo `.mp4` aleatório da sua pasta local, adiciona hashtags na legenda e tenta publicar o vídeo automaticamente.
+
+---
+
+## 🚀 Funcionalidades
+
+- Inicia o Google Chrome (modo não headless) com perfil persistente para manter login.
+- Navega para a página de upload do TikTok.
+- Seleciona e faz upload de um vídeo aleatório da pasta local.
+- Insere hashtags personalizadas na legenda.
+- Aguarda a miniatura do vídeo carregar.
+- Rola a página para revelar o botão "Publicar" e clica para finalizar o upload.
+
+---
+
+## 📋 Pré-requisitos
+
+- Node.js (v18 ou superior recomendado)
+- Google Chrome instalado localmente
+- Pasta local contendo vídeos `.mp4` para upload
+- Acesso à internet
+- Perfil persistente para manter sessão autenticada no TikTok
+
+---
+
+## ⚙️ Configuração
+
+### 1. Instale as dependências
+
+```bash
+npm install playwright
+
+2. Ajuste os caminhos no código
+Pasta dos vídeos:
+No arquivo index.js (ou index.ts), ajuste o caminho para a pasta onde estão os vídeos:
+
+
+const pastaVideos = path.resolve("/home/joabyson/Downloads");
+Exemplos:
+
+Windows:
+const pastaVideos = path.resolve("C:/Users/SeuUsuario/Downloads");
+
+macOS:
+const pastaVideos = path.resolve("/Users/SeuUsuario/Downloads");
+Caminho do Chrome:
+Ajuste o executablePath de acordo com seu sistema:
+
+
+// Linux
+executablePath: "/usr/bin/google-chrome",
+
+// Windows
+executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe",
+
+// macOS
+executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+3. Login persistente
+O script usa um perfil persistente para manter o login no TikTok:
+
+
+const context = await chromium.launchPersistentContext("./meu-perfil", { ... });
+Certifique-se de que este perfil contenha a sessão autenticada no TikTok, ou faça login manualmente uma vez antes de rodar a automação.
+
+▶️ Como executar
+bash
+
+node index.js
+⚠️ Observações importantes
+O TikTok pode alterar sua interface, o que pode quebrar seletores do script.
+
+O botão "Publicar" pode estar fora da área visível da tela, por isso o script faz scroll.
+
+Se o navegador for detectado como automatizado, considere estratégias adicionais de evasão (ex: plugins stealth).
+
+Os tempos de espera (waitForTimeout) podem ser ajustados conforme a velocidade da sua conexão e máquina.
+
+Rodar em container Docker requer instalação do Chrome dentro do container ou apontar para o Chrome do host.
+
+🛠️ Possíveis melhorias
+1.Captura e tratamento de erros para melhor robustez.
+
+2.Automação do login via script.
+
+3.Configuração dinâmica das hashtags.
+
+4.Suporte a múltiplos formatos de vídeo.
+
+5.Envio programado ou em lote.
