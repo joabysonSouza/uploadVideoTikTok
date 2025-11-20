@@ -1,9 +1,11 @@
-import path from "path";
+import path, { parse } from "path";
 import fs from "fs";
 import { chromium } from "playwright";
 
+
 const UploadVideoTikTok = async () => {
-  const context = await chromium.launchPersistentContext("./meu-perfil", {
+
+  const context = await chromium.launchPersistentContext("./meu-perfil-antigo", {
     executablePath: "/usr/bin/google-chrome",
     headless: false,
     args: [
@@ -18,15 +20,34 @@ const UploadVideoTikTok = async () => {
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
   });
 
+  const videosPostados = path.resolve("videos_postados.json");
+
+  const lerVideosPostado = (): string[] => {
+    if (!fs.existsSync(videosPostados)) {
+      fs.writeFileSync(videosPostados, "[]");
+    }
+    const data = fs.readFileSync(videosPostados, "utf-8");
+
+    return JSON.parse(data);
+  };
+
+  const SalvarvideoPostado = (lista: string[]) => {
+    fs.writeFileSync(videosPostados, JSON.stringify(lista, null, 2));
+  };
+
   const page = await context.newPage();
 
-  await page.goto("https://www.tiktok.com/upload", {});
+  await page.goto("https://www.tiktok.com/");
+  await page.waitForTimeout(60000);
+  await page.goto("https://www.tiktok.com/tiktokstudio/upload");
+
+  await page.waitForLoadState("domcontentloaded");
 
   const fileInput = await page.waitForSelector('input[type="file"]', {
     state: "attached",
   });
 
-  const pastaVideos = path.resolve("/home/joabyson/Downloads");
+  const pastaVideos = path.resolve("/home/joabyson/Vídeos/VideosTikTok");
   const videos = fs
     .readdirSync(pastaVideos)
     .filter((file) => file.endsWith(".mp4"));
@@ -36,12 +57,22 @@ const UploadVideoTikTok = async () => {
     return;
   }
 
-  const videoAleatorio = videos[Math.floor(Math.random() * videos.length)];
+  const postados = lerVideosPostado();
+
+  const VideosDisponiveis = videos.filter((video) => !postados.includes(video));
+
+  if (VideosDisponiveis.length == 0) {
+    console.log("Todos os Videos já Foram Postados");
+    return;
+  }
+
+  const videoAleatorio =
+    VideosDisponiveis[Math.floor(Math.random() * VideosDisponiveis.length)];
   const videoPath = path.join(pastaVideos, videoAleatorio);
 
   await page.click("text=Selecionar vídeo"); // Chamar video
 
-  await page.waitForTimeout(20000);
+  await page.waitForTimeout(30000);
   await fileInput.setInputFiles(videoPath);
   console.log(` Enviado: ${videoAleatorio}`);
 
@@ -51,7 +82,7 @@ const UploadVideoTikTok = async () => {
   await page.waitForSelector(
     ".public-DraftStyleDefault-block.public-DraftStyleDefault-ltr",
     {
-      timeout: 10000,
+      timeout: 30000,
     }
   );
 
@@ -59,19 +90,25 @@ const UploadVideoTikTok = async () => {
     ".public-DraftStyleDefault-block.public-DraftStyleDefault-ltr"
   );
   await page.keyboard.type(`
-#AltaPerformance
+#EducaçãoFinanceira
 
-#FocoENegocio
+#FinançasPessoais
 
-#MentalidadeDeSucesso
+#ComoEconomizar
 
-#Produtividade
+#RendaExtra
 
-#CrescimentoPessoal
+#Investimentos
 
-#Disciplina
+#LiberdadeFinanceira
 
-#MindsetEmpreendedor`);
+#DicasFinanceiras
+
+#MentalidadeFinanceira
+
+#IndependênciaFinanceira
+
+#DinheiroConsciente`);
 
   console.log("⏳ Aguardando miniatura...");
   await page.waitForSelector("img.cover-image", {
@@ -85,12 +122,15 @@ const UploadVideoTikTok = async () => {
   const botaoPostar = await page.$('button:has-text("Publicar")');
   if (botaoPostar) {
     await botaoPostar.click();
+    const atualizados = [...postados, videoAleatorio];
+    SalvarvideoPostado(atualizados);
     console.log("Vídeo postado com sucesso!");
   } else {
     console.log("Botão 'Publicar' não encontrado.");
   }
 
-  await page.close()
+  await page.close();
 };
 
 UploadVideoTikTok();
+
