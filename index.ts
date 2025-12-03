@@ -3,94 +3,118 @@ import fs from "fs";
 import { chromium } from "playwright";
 
 const UploadVideoTikTok = async () => {
-  const context = await chromium.launchPersistentContext("./meu-perfil", {
-    executablePath: "/usr/bin/google-chrome",
-    headless: false,
-    args: [
-      "--lang=pt-BR",
-      "--start-maximized",
-      "--disable-blink-features=AutomationControlled",
-    ],
-  });
 
-  await context.setExtraHTTPHeaders({
-    "user-agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+  const context = await chromium.launchPersistentContext("./meu-perfil", {
+    headless: false,
+    viewport: null,
+    args: [
+    "--start-maximized",
+    "--lang=pt-BR",
+    "--disable-blink-features=AutomationControlled",
+    "--disable-dev-shm-usage",
+    "--no-sandbox",
+    "--use-gl=desktop",
+    "--enable-gpu",
+    "--ignore-gpu-blocklist",
+    "--disable-software-rasterizer",
+    "--enable-features=VaapiVideoDecoder",
+    ],
   });
 
   const page = await context.newPage();
 
-  await page.goto("https://www.tiktok.com/upload", {});
-
-  const fileInput = await page.waitForSelector('input[type="file"]', {
-    state: "attached",
+  console.log("➡ Indo para o upload...");
+  await page.goto("https://www.tiktok.com/upload", {
+    timeout: 90000,
+    waitUntil: "networkidle"
   });
 
-  const pastaVideos = path.resolve("/home/joabyson/Downloads");
-  const videos = fs
-    .readdirSync(pastaVideos)
-    .filter((file) => file.endsWith(".mp4"));
+  // pausa para carregamento completo da página
+  await page.waitForTimeout(9000);
 
-  if (videos.length === 0) {
-    console.log("Nenhum vídeo encontrado.");
+await page.click('button[aria-label="Selecionar vídeo"]',{
+     timeout: 90000
+})
+
+  const fileInput = page.locator('input[type="file"]');
+  const pastaVideos = "/home/joabyson/Vídeos/VideosTikTok";
+  const files = fs.readdirSync(pastaVideos)
+    .filter(f => f.toLowerCase().endsWith(".mp4"));
+
+  if (files.length === 0) {
+    console.log("❌ Nenhum vídeo encontrado.");
     return;
   }
 
-  const videoAleatorio = videos[Math.floor(Math.random() * videos.length)];
-  const videoPath = path.join(pastaVideos, videoAleatorio);
+  const video = files[Math.floor(Math.random() * files.length)];
+  const videoPath = path.join(pastaVideos, video);
 
-  await page.click("text=Selecionar vídeo"); // Chamar video
-
-  await page.waitForTimeout(20000);
+  console.log("🎬 Enviando:", video);
   await fileInput.setInputFiles(videoPath);
-  console.log(` Enviado: ${videoAleatorio}`);
 
+  // aguarde o TikTok processar o vídeo
+  console.log("⏳ Aguardando processamento...");
+  await page.waitForTimeout(15000);
+
+  // descrição
+  const descSelector =
+    ".public-DraftStyleDefault-block.public-DraftStyleDefault-ltr";
+
+  await page.waitForSelector(descSelector);
+  await page.click(descSelector);
+
+  await page.keyboard.type(
+    "Segue a gente !! #AltaPerformance #FocoENegocio #Produtividade #Sucesso"
+   
+  );
+
+  await page.waitForTimeout(2000);
+
+  console.log("⏳ Esperando miniatura...");
+
+
+  let miniaturaCarregou = false;
+
+  try {
+    await page.waitForSelector("img.cover-image", { timeout: 120000 });
+    miniaturaCarregou = true
+
+     console.log("📸 Miniatura carregada!");
+  } catch (error) {
+    miniaturaCarregou = false;
+    console.log("⚠ Miniatura NÃO carregou  seguindo o fluxo...")
+    
+  }
+
+  if(miniaturaCarregou){
+     console.log("➡ Miniatura OK, continuando normalmente...");
+  }else{
+
+
+  // rolar para o botão
   await page.evaluate(() => window.scrollBy(0, 500));
   await page.waitForTimeout(2000);
 
-  await page.waitForSelector(
-    ".public-DraftStyleDefault-block.public-DraftStyleDefault-ltr",
-    {
-      timeout: 10000,
-    }
-  );
+  const publicar = page.locator('button[data-e2e="post_video_button"]');
 
-  await page.click(
-    ".public-DraftStyleDefault-block.public-DraftStyleDefault-ltr"
-  );
-  await page.keyboard.type(`
-#AltaPerformance
+  if (await publicar.count() > 0) {
+    await page.waitForFunction(() => {
+  const btn = document.querySelector('button[data-e2e="post_video_button"]');
+  return btn && btn.getAttribute("aria-disabled") === "false";
 
-#FocoENegocio
+});
 
-#MentalidadeDeSucesso
-
-#Produtividade
-
-#CrescimentoPessoal
-
-#Disciplina
-
-#MindsetEmpreendedor`);
-
-  console.log("⏳ Aguardando miniatura...");
-  await page.waitForSelector("img.cover-image", {
-    timeout: 120000,
-  });
-
-  await page.evaluate(() => window.scrollBy(0, 300));
-  await page.waitForTimeout(3000);
-
-  // 🚀 Clica em "Postar"
-  const botaoPostar = await page.$('button:has-text("Publicar")');
-  if (botaoPostar) {
-    await botaoPostar.click();
-    console.log("Vídeo postado com sucesso!");
+  await page.click('button[data-e2e="post_video_button"]');
+    console.log("🎉 Publicado com sucesso!");
   } else {
-    console.log("Botão 'Publicar' não encontrado.");
+    console.log("❌ Botão Publicar não encontrado.");
   }
 
-  await page.close()
+  console.log("✔ Concluído. Mantendo o navegador aberto.");
+
+}
+
+page.close()
 };
 
 UploadVideoTikTok();
