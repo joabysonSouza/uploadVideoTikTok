@@ -36,11 +36,22 @@ await page.click('button[aria-label="Selecionar vídeo"]',{
      timeout: 90000
 })
 
+const arquivoControle = "videos_usados.json"
+
+ if (!fs.existsSync(arquivoControle)) {
+    fs.writeFileSync(arquivoControle, JSON.stringify([]));
+  }
+
+    const videosUsados: string[] = JSON.parse(fs.readFileSync(arquivoControle, "utf8"));
+
+
   const fileInput = page.locator('input[type="file"]');
   const pastaVideos = "/home/joabyson/Vídeos/VideosTikTok";
   const files = fs.readdirSync(pastaVideos)
-    .filter(f => f.toLowerCase().endsWith(".mp4"));
+    .filter(f => f.endsWith(".mp4"))
+    .filter(video => !videosUsados.includes(video));
 
+   
   if (files.length === 0) {
     console.log("❌ Nenhum vídeo encontrado.");
     return;
@@ -64,7 +75,7 @@ await page.click('button[aria-label="Selecionar vídeo"]',{
   await page.click(descSelector);
 
   await page.keyboard.type(
-    "Segue a gente !! #AltaPerformance #FocoENegocio #Produtividade #Sucesso"
+    "  Segue a gente !! #AltaPerformance #FocoENegocio #Produtividade #Sucesso"
    
   );
 
@@ -73,48 +84,41 @@ await page.click('button[aria-label="Selecionar vídeo"]',{
   console.log("⏳ Esperando miniatura...");
 
 
-  let miniaturaCarregou = false;
-
-  try {
-    await page.waitForSelector("img.cover-image", { timeout: 120000 });
-    miniaturaCarregou = true
-
-     console.log("📸 Miniatura carregada!");
-  } catch (error) {
-    miniaturaCarregou = false;
-    console.log("⚠ Miniatura NÃO carregou  seguindo o fluxo...")
-    
-  }
-
-  if(miniaturaCarregou){
-     console.log("➡ Miniatura OK, continuando normalmente...");
-  }else{
-
-
+ 
   // rolar para o botão
   await page.evaluate(() => window.scrollBy(0, 500));
   await page.waitForTimeout(2000);
 
-  const publicar = page.locator('button[data-e2e="post_video_button"]');
 
-  if (await publicar.count() > 0) {
+
+
+await page.waitForSelector('button[data-e2e="save_draft_button"]', {
+  timeout: 60000
+});
+
+const rascunho = page.locator('button[data-e2e="save_draft_button"]')
+
+  if (await rascunho.count() > 0) {
     await page.waitForFunction(() => {
-  const btn = document.querySelector('button[data-e2e="post_video_button"]');
+  const btn = document.querySelector('button[data-e2e="save_draft_button"]');
   return btn && btn.getAttribute("aria-disabled") === "false";
 
 });
 
-  await page.click('button[data-e2e="post_video_button"]');
-    console.log("🎉 Publicado com sucesso!");
+  await page.click('button[data-e2e="save_draft_button"]');
+    console.log("🎉 Rascunho salvo com sucesso!");
   } else {
-    console.log("❌ Botão Publicar não encontrado.");
+    console.log("❌ Botão Rascunho não encontrado.");
   }
 
   console.log("✔ Concluído. Mantendo o navegador aberto.");
 
-}
+  videosUsados.push(video)
+  fs.writeFileSync(arquivoControle, JSON.stringify(videosUsados,null,2))
 
-page.close()
+
+
+ await page.close()
 };
 
 UploadVideoTikTok();
